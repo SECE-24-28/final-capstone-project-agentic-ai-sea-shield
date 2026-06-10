@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [fleet, setFleet] = useState([]);
-  const [activeTab, setActiveTab] = useState('fleet'); // Default to fleet map FOR FAMILY HUB
+  const [activeTab, setActiveTab] = useState('fleet'); // Default to fleet map FOR FAMILy hub
 
   const boatIcon = new L.Icon({
     iconUrl: '/boat.png',
