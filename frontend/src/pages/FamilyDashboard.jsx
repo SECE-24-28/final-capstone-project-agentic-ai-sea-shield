@@ -25,7 +25,7 @@ const boatIcon = new L.Icon({
   iconAnchor: [20, 20],
   className: 'marker-boat'
 });
-// safezone
+
 const SAFE_ZONE_POLYGON = [
   [9.35, 78.90],
   [9.35, 79.20],
@@ -183,10 +183,10 @@ export default function FamilyDashboard() {
     fetch(`${API_URL}/api/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        senderId: 'FAMILY_' + (userData.boatId || 'DEMO'), 
-        receiverId: userData.boatId || 'BOAT_DEMO', 
-        content: message 
+      body: JSON.stringify({
+        senderId: 'FAMILY_' + (userData.boatId || 'DEMO'),
+        receiverId: userData.boatId || 'BOAT_DEMO',
+        content: message
       })
     }).then(() => {
       toast.success("Message sent to Captain");
@@ -224,7 +224,7 @@ export default function FamilyDashboard() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-ocean-dark text-white font-sans overflow-hidden">
-      
+
       {/* Header */}
       <header className="min-h-[4rem] sm:h-16 border-b border-ocean-light bg-ocean-mid flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-2 sm:py-0 shadow-md z-30 gap-2">
         <button onClick={() => navigate('/home')} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
@@ -232,13 +232,13 @@ export default function FamilyDashboard() {
           <h1 className="text-base sm:text-l font-bold tracking-wider">SeaShield {t.family_hub}</h1>
         </button>
         <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto w-full sm:w-auto justify-center sm:justify-end pb-1 sm:pb-0">
-          <button 
+          <button
             onClick={() => navigate('/home')}
             className="whitespace-nowrap px-3 sm:px-4 py-1.5 sm:py-2 bg-ocean-light hover:bg-gray-600 rounded text-[10px] sm:text-sm font-semibold transition"
           >
             {t.back_to_dashboard}
           </button>
-          <button 
+          <button
             onClick={() => { localStorage.removeItem('user'); navigate('/'); }}
             className="whitespace-nowrap text-gray-400 hover:text-white font-bold transition-colors text-[10px] sm:text-sm uppercase"
           >
@@ -250,17 +250,17 @@ export default function FamilyDashboard() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col lg:flex-row p-3 lg:p-6 gap-3 lg:gap-6 overflow-hidden relative">
-        
+
         {/* Stats Panel */}
         <div className="w-full lg:w-1/3 flex flex-col gap-4 lg:gap-6 overflow-y-auto lg:overflow-visible custom-scrollbar max-h-[40vh] lg:max-h-none order-2 lg:order-1">
 
-          
+
           {/* Status Card */}
           <div className="bg-ocean-mid p-6 rounded-xl border border-ocean-light shadow-xl glass-panel relative overflow-hidden">
             <h2 className="text-gray-400 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
               <Activity className="w-4 h-4" /> {t.live_status}
             </h2>
-            
+
             <div className={`p-4 rounded border-l-4 mb-6 ${getStatusColor(boatData.status)}`}>
               <p className="text-3xl font-black tracking-widest">{boatData.status === 'SAFE' ? t.status_safe : boatData.status === 'WARNING' ? t.status_warning : t.status_danger}</p>
               <p className="text-sm opacity-80 mt-1">{t.status}</p>
@@ -268,12 +268,12 @@ export default function FamilyDashboard() {
 
             <div className="space-y-4">
               <div className="flex justify-between items-center border-b border-ocean-light pb-2">
-                <span className="text-gray-400 flex items-center gap-2"><Navigation className="w-4 h-4"/> {t.speed}</span>
+                <span className="text-gray-400 flex items-center gap-2"><Navigation className="w-4 h-4" /> {t.speed}</span>
                 <span className="font-mono text-lg">{boatData.speed ? boatData.speed.toFixed(1) : 0} km/h</span>
               </div>
               <div className="flex justify-between items-center border-b border-ocean-light pb-2">
                 <span className="text-gray-400 flex items-center gap-2">
-                  <Clock className={`w-4 h-4 ${inactivity ? 'text-danger animate-pulse' : ''}`}/> 
+                  <Clock className={`w-4 h-4 ${inactivity ? 'text-danger animate-pulse' : ''}`} />
                   {t.last_sync}
                 </span>
                 <span className={`font-mono text-sm ${inactivity ? 'text-danger font-bold' : ''}`}>
@@ -289,15 +289,15 @@ export default function FamilyDashboard() {
                 <MessageSquare className="w-3 h-3" /> {t.message_to_boat}
               </label>
               <div className="flex gap-2 mb-4">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t.type_message}
                   className="flex-1 bg-ocean-dark border border-ocean-light rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors"
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                 />
-                <button 
+                <button
                   onClick={sendMessage}
                   className="bg-blue-600 hover:bg-blue-500 p-2 rounded-lg transition-all active:scale-95"
                 >
@@ -325,7 +325,7 @@ export default function FamilyDashboard() {
                 )}
               </div>
             </div>
-            
+
             {/* Background Accent */}
             <div className="absolute -right-10 -bottom-10 opacity-5">
               <Users className="w-64 h-64" />
@@ -359,9 +359,9 @@ export default function FamilyDashboard() {
         {/* Right Map Panel */}
         <div className="w-full lg:w-2/3 flex-1 min-h-[40vh] rounded-xl overflow-hidden border border-ocean-light relative shadow-2xl z-0 tracking-map order-1 lg:order-2">
 
-          <MapContainer 
-            center={[boatData.lat, boatData.lng]} 
-            zoom={13} 
+          <MapContainer
+            center={[boatData.lat, boatData.lng]}
+            zoom={13}
             className="w-full h-full"
             zoomControl={true}
           >
@@ -369,48 +369,48 @@ export default function FamilyDashboard() {
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
             />
-            
+
             {/* Trip History Track */}
             {tripHistory.length > 1 && (
-              <Polyline 
-                positions={tripHistory} 
-                pathOptions={{ 
-                  color: '#60a5fa', 
-                  weight: 3, 
+              <Polyline
+                positions={tripHistory}
+                pathOptions={{
+                  color: '#60a5fa',
+                  weight: 3,
                   opacity: 0.6,
-                  dashArray: "5, 10" 
-                }} 
+                  dashArray: "5, 10"
+                }}
               />
             )}
             {/* Safe Zone Region */}
-            <Polygon 
-              positions={SAFE_ZONE_POLYGON} 
-              pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.1, weight: 3, dashArray: "10, 10" }} 
+            <Polygon
+              positions={SAFE_ZONE_POLYGON}
+              pathOptions={{ color: '#10b981', fillColor: '#10b981', fillOpacity: 0.1, weight: 3, dashArray: "10, 10" }}
             />
-            
+
             {/* Coral Reef Zone */}
-            <Polygon 
-              positions={CORAL_REEF_ZONE} 
-              pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.2, weight: 2 }} 
+            <Polygon
+              positions={CORAL_REEF_ZONE}
+              pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.2, weight: 2 }}
             />
 
             {/* Sri Lanka Waters */}
-            <Polygon 
-              positions={SRI_LANKA_WATERS} 
-              pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, weight: 0 }} 
+            <Polygon
+              positions={SRI_LANKA_WATERS}
+              pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, weight: 0 }}
             />
 
             {/* Actual IMBL Border Line */}
-            <Polyline 
-              positions={IMBL_LINE} 
-              pathOptions={{ color: '#ef4444', weight: 4, dashArray: "15, 10" }} 
+            <Polyline
+              positions={IMBL_LINE}
+              pathOptions={{ color: '#ef4444', weight: 4, dashArray: "15, 10" }}
             />
-            
+
             {/* Live Boat Marker */}
             <Marker position={[boatData.lat, boatData.lng]} icon={boatIcon} />
             <MapUpdater center={[boatData.lat, boatData.lng]} />
           </MapContainer>
-          
+
           <div className="absolute bottom-4 right-4 bg-ocean-dark/80 backdrop-blur-md px-4 py-2 rounded text-xs border border-ocean-light z-[400]">
             Lat: {boatData.lat?.toFixed(4)} | Lng: {boatData.lng?.toFixed(4)}
           </div>
