@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Location from './models/Location.js';
 import Alert from './models/Alert.js';
+import { initializeAlertAgent, generateAIAlert } from './agents/index.js';
 
 dotenv.config();
 
@@ -33,6 +34,9 @@ let memoryData = {
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/seashield';
 let isMongoConnected = false;
 
+// AI Alert Agent
+let alertOrchestrator = null;
+
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('MongoDB Connected');
@@ -43,13 +47,24 @@ mongoose.connect(MONGO_URI)
     console.log('MongoDB connection failed. Using in-memory fallback for demo.', err.message);
   });
 
+// Initialize AI Alert Agent (async)
+initializeAlertAgent()
+  .then(orchestrator => {
+    alertOrchestrator = orchestrator;
+    console.log('✅ AI Alert Agent initialized');
+  })
+  .catch(err => {
+    console.warn('⚠️  AI Alert Agent failed to initialize:', err.message);
+    console.warn('Falling back to template-based alerts');
+  });
+
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
-  
+
   socket.on('location_update', (data) => {
     // Broadcast boat movement to all clients (Family/Admin)
     socket.broadcast.emit('location_update', { ...data, timestamp: new Date() });
-    
+
     // Save to memory/mongo for historical logs
     if (isMongoConnected) {
       const location = new Location({ ...data, timestamp: new Date() });
@@ -107,7 +122,7 @@ app.post('/api/location', async (req, res) => {
     } else {
       memoryData.fleet[boatId] = { boatId, lat, lng, speed, status, timestamp: new Date() };
     }
-    
+
     res.status(200).json({ success: true, message: 'Location updated' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -131,7 +146,7 @@ app.get('/api/location/:boatId', async (req, res) => {
 app.post('/api/sos', async (req, res) => {
   try {
     const { boatId, lat, lng, message } = req.body;
-    
+
     // Broadcast emergency to WebSockets
     const alertData = {
       boatId: boatId || 'UNKNOWN',
@@ -140,7 +155,7 @@ app.post('/api/sos', async (req, res) => {
       message: message || "Emergency signal received from fisherman boat.",
       location: { lat, lng }
     };
-    
+
     io.emit('emergency_sos', alertData);
 
     if (isMongoConnected) {
@@ -160,9 +175,9 @@ app.post('/api/alert', async (req, res) => {
   try {
     const { boatId, type, message, lat, lng } = req.body;
     const alertData = { boatId, type, message, location: { lat, lng }, timestamp: new Date() };
-    
+
     io.emit('system_alert', alertData);
-    
+
     if (isMongoConnected) {
       const alertEntry = new Alert(alertData);
       await alertEntry.save();
@@ -173,6 +188,107 @@ app.post('/api/alert', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// AI-Powered Alert Generation Endpoint
+app.post('/api/ai-alert', async (req, res) => {
+  try {
+    const { boatId, status, position, distanceMeters, weatherCondition, speed } = req.body;
+
+    if (!boatId || !status || !position) {
+      return res.status(400).json({
+        success: false,
+        message: 'Required fields: boatId, status, position, distanceMeters'
+      });
+    }
+
+    // Generate AI alert using orchestrator
+    const alert = await generateAIAlert({
+      boatId,
+      status,
+      position,
+      distanceMeters: distanceMeters || 0,
+      weatherCondition: weatherCondition || 'clear',
+      speed: speed || 0,
+      previousStatus: memoryData.fleet[boatId]?.status || 'SAFE'
+    });
+
+    // Emit alert to all connected clients
+    io.emit('system_alert', {
+      boatId,
+      type: alert.alertType || 'INFO',
+      message: alert.displayText,
+      lat: position[0],
+      lng: position[1],
+      timestamp: new Date(),
+      voiceAlert: alert.voiceText,
+      severity: alert.severity,
+      source: alert.source || 'ai'
+    });
+
+    // Save to DB
+    if (isMongoConnected) {
+      try {
+        await new Alert({
+          boatId,
+          type: alert.alertType || 'INFO',
+          message: alert.displayText,
+          location: { lat: position[0], lng: position[1] }
+        }).save();
+      } catch (dbErr) {
+        console.error('DB save failed:', dbErr.message);
+      }
+    } else {
+      memoryData.alerts.push({
+        boatId,
+        type: alert.alertType || 'INFO',
+        message: alert.displayText,
+        location: { lat: position[0], lng: position[1] },
+        timestamp: new Date()
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      alert,
+      message: 'AI alert generated and broadcasted'
+    });
+  } catch (error) {
+    console.error('AI alert generation error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      fallback: true
+    });
+  }
+});
+
+// Alert Agent Monitoring Endpoint
+app.get('/api/alert-agent/status', (req, res) => {
+  res.status(200).json({
+    status: alertOrchestrator ? 'active' : 'inactive',
+    initialized: !!alertOrchestrator,
+    message: alertOrchestrator
+      ? 'AI Alert Agent is running'
+      : 'AI Alert Agent not available - using template-based alerts'
+  });
+});
+
+// Alert Agent History Endpoint
+app.get('/api/alert-agent/history', (req, res) => {
+  if (!alertOrchestrator) {
+    return res.status(503).json({
+      error: 'Agent not initialized',
+      message: 'AI Alert Agent is not available'
+    });
+  }
+
+  const limit = parseInt(req.query.limit) || 10;
+  const history = alertOrchestrator.getExecutionHistory(limit);
+  res.status(200).json({
+    count: history.length,
+    executions: history
+  });
 });
 
 // Add User Model
@@ -201,13 +317,13 @@ app.post('/api/auth/signup', async (req, res) => {
     const { name, email, password, role, language, boatId, familyPhone } = req.body;
     // Only allow fisherman or family signup
     const finalRole = (role === 'family') ? 'family' : 'fisherman';
-    
+
     if (isMongoConnected) {
       const existing = await User.findOne({ email });
       if (existing) return res.status(400).json({ success: false, message: 'User already exists' });
-      const user = new User({ 
-        name, email, password, 
-        role: finalRole, 
+      const user = new User({
+        name, email, password,
+        role: finalRole,
         language: language || 'en',
         boatId: boatId || null,
         familyPhone: familyPhone || null
@@ -228,7 +344,7 @@ app.post('/api/auth/signup', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, role, language } = req.body;
-    
+
     // Admin Shortcut for Demo
     let searchQuery = { email, password };
     if (email === 'admin' && password === 'admin') {
@@ -239,22 +355,24 @@ app.post('/api/auth/login', async (req, res) => {
       const user = await User.findOne(searchQuery);
       if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
-      
+
       // If language was provided in login form but not saved in DB yet (old users), or if user wants to change it
       if (language && user.language !== language) {
         user.language = language;
         await user.save();
       }
 
-      res.status(200).json({ success: true, user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email, 
-        role: user.role, 
-        language: user.language,
-        boatId: user.boatId,
-        familyPhone: user.familyPhone
-      } });
+      res.status(200).json({
+        success: true, user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          language: user.language,
+          boatId: user.boatId,
+          familyPhone: user.familyPhone
+        }
+      });
     } else {
       const user = memoryData.users.find(u => u.email === email && u.password === password);
       if (!user) {
@@ -277,20 +395,20 @@ app.put('/api/auth/profile', async (req, res) => {
     if (isMongoConnected) {
       const user = await User.findById(id);
       if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-      
+
       if (familyPhone) user.familyPhone = familyPhone;
       if (language) user.language = language;
       if (name) user.name = name;
-      
+
       await user.save();
       res.status(200).json({ success: true, user: { id: user._id, name: user.name, email: user.email, role: user.role, language: user.language, boatId: user.boatId, familyPhone: user.familyPhone } });
     } else {
       const userIndex = memoryData.users.findIndex(u => u.id == id);
       if (userIndex === -1 && id !== 'admin') return res.status(404).json({ success: false, message: 'User not found' });
-      
+
       if (id === 'admin') {
-         // handle admin update in memory if needed
-         res.status(200).json({ success: true, message: 'Admin updated (simulated)' });
+        // handle admin update in memory if needed
+        res.status(200).json({ success: true, message: 'Admin updated (simulated)' });
       } else {
         if (familyPhone) memoryData.users[userIndex].familyPhone = familyPhone;
         if (language) memoryData.users[userIndex].language = language;
@@ -382,14 +500,14 @@ app.post('/api/messages', async (req, res) => {
   try {
     const { senderId, receiverId, content } = req.body;
     const alertData = { senderId, receiverId, content, timestamp: new Date() };
-    
+
     if (isMongoConnected) {
       const msg = new Message(alertData);
       await msg.save();
     } else {
       memoryData.messages.push(alertData);
     }
-    
+
     io.emit('new_message', alertData);
     res.status(201).json({ success: true, data: alertData });
   } catch (err) {
@@ -434,12 +552,12 @@ app.get('/api/admin/fleet', async (req, res) => {
       }
 
       if (latestLoc) return latestLoc;
-      
+
       // Default position if no pings received yet
       const jitter = bid.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 100 / 5000;
       return {
         boatId: bid,
-        lat: 9.15 + jitter, 
+        lat: 9.15 + jitter,
         lng: 79.15 + (jitter * -1),
         speed: 0,
         status: 'OFFLINE',

@@ -1,0 +1,24 @@
+Alert generation error: Missing value for input variable `
+  "message": "string (max 100 chars)",
+  "voiceAlert": "string for text-to-speech",
+  "severity": "info|warning|critical",
+  "recommendedAction": "string"
+`
+Alert generation error: Missing value for input variable `
+  "message": "string (max 100 chars)",
+  "voiceAlert": "string for text-to-speech",
+  "severity": "info|warning|critical",
+  "recommendedAction": "string"
+`
+Alert generation error: Missing value for input variable `
+  "message": "string (max 100 chars)",
+  "voiceAlert": "string for text-to-speech",
+  "severity": "info|warning|critical",
+  "recommendedAction": "string"
+`
+Alert generation error: Missing value for input variable `
+  "message": "string (max 100 chars)",
+  "voiceAlert": "string for text-to-speech",
+  "severity": "info|warning|critical",
+  "recommendedAction": "string"
+`

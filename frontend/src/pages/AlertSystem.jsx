@@ -7,6 +7,12 @@ import { SOCKET_URL, API_URL } from '../config';
 
 const socket = io(SOCKET_URL);
 
+const formatAlertTimestamp = (timestamp) => {
+  if (!timestamp) return 'Pending timestamp';
+  const date = new Date(timestamp);
+  return `${date.toLocaleTimeString()} - ${date.toLocaleDateString()}`;
+};
+
 export default function AlertSystem() {
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState([]);
@@ -99,7 +105,7 @@ export default function AlertSystem() {
                       {alert.type.replace('_', ' ')}
                     </h3>
                     <span className="text-[10px] sm:text-sm font-mono text-gray-400 tracking-wider">
-                      {new Date(alert.timestamp || Date.now()).toLocaleTimeString()} - {new Date(alert.timestamp || Date.now()).toLocaleDateString()}
+                      {formatAlertTimestamp(alert.timestamp)}
                     </span>
                   </div>
                   <p className="text-sm sm:text-gray-200 leading-relaxed font-medium">
@@ -119,4 +125,3 @@ export default function AlertSystem() {
     </div>
   );
 }
-

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Polygon, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -8,6 +9,7 @@ import { Shield, Navigation, AlertTriangle, PhoneCall, Radio, Power, Mail, Send,
 import { useNavigate } from 'react-router-dom';
 import { translations } from '../translations';
 import { SOCKET_URL, API_URL } from '../config';
+import AlertAgent from '../agents/AlertAgent';
 
 const socket = io(SOCKET_URL);
 
@@ -73,7 +75,7 @@ export default function FishermanDashboard() {
   const userData = JSON.parse(localStorage.getItem('user')) || {};
   const lang = localStorage.getItem('preferredLanguage') || userData.language || 'en';
   const t = translations[lang] || translations.en;
-  
+
   useEffect(() => {
     // Role check
     const user = JSON.parse(localStorage.getItem('user'));
@@ -110,7 +112,7 @@ export default function FishermanDashboard() {
 
   const handleSendMessage = () => {
     if (!replyText.trim()) return;
-    
+
     const msgData = {
       senderId: userData.boatId || 'BOAT_DEMO',
       receiverId: 'FAMILY_' + (userData.boatId || 'DEMO'),
@@ -129,7 +131,7 @@ export default function FishermanDashboard() {
       setReplyText("");
       // Add to local messages list for visual feedback
       setMessages(prev => [msgData, ...prev]);
-    }).catch(err => toast.error("Failed to send message"));
+    }).catch(() => toast.error("Failed to send message"));
   };
 
   const playBuzzer = (type = 'warning') => {
@@ -143,7 +145,7 @@ export default function FishermanDashboard() {
 
       if (type === 'danger') {
         oscillator.type = 'square'; // Extremely loud/aggressive wave
-        oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime); 
+        oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime);
         oscillator.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 1.0);
       } else {
         oscillator.type = 'sawtooth'; // Clearer warning wave
@@ -162,7 +164,7 @@ export default function FishermanDashboard() {
 
   const speak = (text) => {
     if (!window.speechSynthesis || !text) return;
-    
+
     // 1. Cancel ongoing speech to clear queue
     window.speechSynthesis.cancel();
 
@@ -170,29 +172,29 @@ export default function FishermanDashboard() {
     // Many mobile browsers (Android Chrome/Safari) get "stuck" without this.
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text);
-      
-      const langMap = { 
-        'ta': 'ta-IN', 
-        'ml': 'ml-IN', 
-        'te': 'te-IN', 
-        'kn': 'kn-IN', 
-        'si': 'si-LK', 
+
+      const langMap = {
+        'ta': 'ta-IN',
+        'ml': 'ml-IN',
+        'te': 'te-IN',
+        'kn': 'kn-IN',
+        'si': 'si-LK',
         'hi': 'hi-IN',
         'mr': 'mr-IN',
         'gu': 'gu-IN',
         'bn': 'bn-IN',
         'or': 'or-IN',
-        'en': 'en-US' 
+        'en': 'en-US'
       };
       const baseCode = langMap[lang] || 'en-US';
-      
+
       const voices = window.speechSynthesis.getVoices();
-      
+
       // Attempt to find a voice matching the specific locale or just the language prefix
       // Some browsers use ml_IN (underscore), some use ml-IN (dash)
       let voice = voices.find(v => v.lang.replace('_', '-') === baseCode) ||
-                  voices.find(v => v.lang.startsWith(lang)) ||
-                  voices.find(v => v.name.toLowerCase().includes('google') && v.lang.startsWith(lang));
+        voices.find(v => v.lang.startsWith(lang)) ||
+        voices.find(v => v.name.toLowerCase().includes('google') && v.lang.startsWith(lang));
 
       if (voice) {
         utterance.voice = voice;
@@ -220,11 +222,11 @@ export default function FishermanDashboard() {
   const testVoice = () => {
     console.log("[Voice Debug] testVoice triggered. Current lang:", lang);
     const availableVoices = window.speechSynthesis.getVoices();
-    
+
     // Help user identify missing voice packs
     console.log("--- VOICE DIAGNOSTICS ---");
     console.log("Total voices found:", availableVoices.length);
-    const regional = availableVoices.filter(v => ['ta','ml','te','kn','si','hi'].some(code => v.lang.includes(code)));
+    const regional = availableVoices.filter(v => ['ta', 'ml', 'te', 'kn', 'si', 'hi'].some(code => v.lang.includes(code)));
     if (regional.length > 0) {
       console.log("Regional voices detected:");
       regional.forEach(v => console.log(` >> ${v.name} (${v.lang})`));
@@ -263,7 +265,7 @@ export default function FishermanDashboard() {
       console.log("Voice systems initialized");
     };
     window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
-    
+
     // Unlock speech synthesis on first user interaction
     const unlockSpeech = () => {
       const silent = new SpeechSynthesisUtterance("");
@@ -290,10 +292,10 @@ export default function FishermanDashboard() {
     if (status !== 'SAFE' && lang !== 'en') {
       const isDanger = status === 'DANGER';
       console.log(`[SeaShield AI] Continuous alarm active for ${status} mode.`);
-      
+
       // Immediate first beep
       playBuzzer(isDanger ? 'danger' : 'warning');
-      
+
       // Repeat every 2 seconds until status changes back to SAFE
       interval = setInterval(() => {
         playBuzzer(isDanger ? 'danger' : 'warning');
@@ -304,11 +306,9 @@ export default function FishermanDashboard() {
 
   useEffect(() => {
     const boatId = userData.boatId || 'BOAT_DEMO';
-    if (true) { 
-      fetch(`${API_URL}/api/messages/${boatId}`)
-        .then(res => res.json())
-        .then(data => { if (data.success) setMessages(data.data); });
-    }
+    fetch(`${API_URL}/api/messages/${boatId}`)
+      .then(res => res.json())
+      .then(data => { if (data.success) setMessages(data.data); });
 
     socket.on('new_message', (msg) => {
       console.log("New Message Received via Socket:", msg);
@@ -349,6 +349,13 @@ export default function FishermanDashboard() {
   const trackingRef = useRef(null);
   const lastAlertedStatusRef = useRef('SAFE');
 
+  const addAlert = (msg) => {
+    setAlerts(prev => [{ id: Date.now(), time: new Date().toLocaleTimeString(), msg }, ...prev].slice(0, 10));
+    toast.error(msg, {
+      style: { background: '#ef4444', color: '#fff' }
+    });
+  };
+
   // Load last position if offline
   useEffect(() => {
     const saved = localStorage.getItem('lastKnownPosition');
@@ -363,7 +370,7 @@ export default function FishermanDashboard() {
         setPosition(prev => {
           // Move North-East towards boundary
           const newPos = [prev[0] + 0.008, prev[1] + 0.003];
-          setSpeed(15 + Math.random() * 5); 
+          setSpeed(15 + Math.random() * 5);
           localStorage.setItem('lastKnownPosition', JSON.stringify(newPos));
           return newPos;
         });
@@ -379,22 +386,22 @@ export default function FishermanDashboard() {
   // Geofencing and Border Detection
   useEffect(() => {
     if (!position) return;
-    
+
     const pt = turf.point([position[1], position[0]]); // Turf uses [lng, lat]
-    
+
     // Polygons
     const safeZone = turf.polygon([[...SAFE_ZONE_POLYGON.map(b => [b[1], b[0]])]]);
     const reefZone = turf.polygon([[...CORAL_REEF_ZONE.map(b => [b[1], b[0]])]]);
     const sriLankaZone = turf.polygon([[...SRI_LANKA_WATERS.map(b => [b[1], b[0]])]]);
-    
+
     const line = turf.polygonToLine(safeZone);
     const isInsideSafe = turf.booleanPointInPolygon(pt, safeZone);
     const isInsideReef = turf.booleanPointInPolygon(pt, reefZone);
     const isInsideSriLanka = turf.booleanPointInPolygon(pt, sriLankaZone);
-    
+
     const distanceKm = turf.pointToLineDistance(pt, line, { units: 'kilometers' });
     const distanceMeters = Math.round(distanceKm * 1000);
-    
+
     setDistanceToBorder(distanceMeters);
 
     if (!isInsideSafe) {
@@ -419,31 +426,77 @@ export default function FishermanDashboard() {
     } else if (distanceMeters < 1500) {
       newStatus = 'WARNING';
     }
-    
+
     setStatus(newStatus.split('_')[0]); // UI display base status
-    
-    // Voice Warning & Event Logic
+
+    // Voice Warning & Event Logic with AI Alert Generation
     if (newStatus !== lastAlertedStatusRef.current) {
-      if (newStatus === 'WARNING') {
-        speak(t.voice_warning_approaching_boundary);
-        addAlert(t.alert_approaching_boundary.replace('{distance}', distanceMeters));
-        socket.emit('system_alert', { boatId: userData.boatId, type: 'BORDER_WARNING', message: `Boat is ${distanceMeters}m from border.`, lat: position[0], lng: position[1] });
-      } else if (newStatus === 'WARNING_REEF') {
-        speak(t.voice_warning_coral_reef);
-        addAlert(t.alert_coral_reef);
-        socket.emit('system_alert', { boatId: userData.boatId, type: 'BORDER_WARNING', message: `Boat entered protected Coral Reef.`, lat: position[0], lng: position[1] });
-      } else if (newStatus === 'DANGER_SRI_LANKA') {
-        speak(t.voice_danger_sri_lanka);
-        addAlert(t.alert_danger_sri_lanka);
-        socket.emit('system_alert', { boatId: userData.boatId, type: 'SOS', message: `CRITICAL: Boat crossed into Sri Lankan Waters!`, lat: position[0], lng: position[1] });
-      } else if (newStatus === 'DANGER') {
-        speak(t.voice_danger_left_zone);
-        addAlert(t.alert_danger_left_zone);
-        socket.emit('system_alert', { boatId: userData.boatId, type: 'BORDER_WARNING', message: `Boat has left authorized zone.`, lat: position[0], lng: position[1] });
-      } else if (newStatus === 'SAFE') {
-        addAlert(t.alert_returned_safe_zone);
-        socket.emit('system_alert', { boatId: userData.boatId, type: 'INFO', message: `Boat returned to safe zone.`, lat: position[0], lng: position[1] });
-      }
+      // Call AI Alert API for LLM-based alert generation
+      const generateAIAlert = async () => {
+        try {
+          const response = await fetch(`${API_URL}/api/ai-alert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              boatId: userData.boatId || 'BOAT_DEMO',
+              status: newStatus,
+              position: [position[0], position[1]],
+              distanceMeters,
+              weatherCondition: 'clear',
+              speed
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success && data.alert) {
+            // Use AI-generated alert
+            if (data.alert.voiceText) speak(data.alert.voiceText);
+            addAlert(data.alert.displayText);
+          } else {
+            // Fallback to template-based alert
+            const fallbackPackage = AlertAgent.generate({
+              status: newStatus,
+              distanceMeters,
+              position,
+              t,
+              boatId: userData.boatId || 'BOAT_DEMO'
+            });
+
+            if (fallbackPackage.speechText) speak(fallbackPackage.speechText);
+            addAlert(fallbackPackage.displayText);
+            socket.emit('system_alert', {
+              boatId: fallbackPackage.systemPayload.boatId,
+              type: fallbackPackage.systemPayload.type,
+              message: fallbackPackage.systemPayload.message,
+              lat: fallbackPackage.systemPayload.lat,
+              lng: fallbackPackage.systemPayload.lng
+            });
+          }
+        } catch (error) {
+          console.error('AI alert failed, using fallback:', error);
+          // Fallback to template
+          const fallbackPackage = AlertAgent.generate({
+            status: newStatus,
+            distanceMeters,
+            position,
+            t,
+            boatId: userData.boatId || 'BOAT_DEMO'
+          });
+
+          if (fallbackPackage.speechText) speak(fallbackPackage.speechText);
+          addAlert(fallbackPackage.displayText);
+          socket.emit('system_alert', {
+            boatId: fallbackPackage.systemPayload.boatId,
+            type: fallbackPackage.systemPayload.type,
+            message: fallbackPackage.systemPayload.message,
+            lat: fallbackPackage.systemPayload.lat,
+            lng: fallbackPackage.systemPayload.lng
+          });
+        }
+      };
+
+      generateAIAlert();
       lastAlertedStatusRef.current = newStatus;
     }
 
@@ -455,7 +508,7 @@ export default function FishermanDashboard() {
       speed,
       status: newStatus
     });
-    
+
     // Post to backend API
     fetch(`${API_URL}/api/location`, {
       method: 'POST',
@@ -465,25 +518,26 @@ export default function FishermanDashboard() {
 
   }, [position, speed, lang, t]);
 
-  const addAlert = (msg) => {
+  // eslint-disable-next-line no-unused-vars
+  function unusedAddAlert(msg) {
     setAlerts(prev => [{ id: Date.now(), time: new Date().toLocaleTimeString(), msg }, ...prev].slice(0, 10));
     toast.error(msg, {
       style: { background: '#ef4444', color: '#fff' }
     });
-  };
+  }
 
   const triggerSOS = () => {
     // 1. VIBRATE as physical feedback
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 
     // 2. Broadcast SOS to Family & Admin via Socket and API
-    toast.success(t.sos_sent_success, { 
+    toast.success(t.sos_sent_success, {
       style: { background: '#10b981', color: '#fff' },
       duration: 4000
     });
-    
+
     addAlert(t.alert_sos_broadcasted);
-    
+
     socket.emit('emergency_sos', {
       boatId: userData.boatId,
       type: 'SOS',
@@ -495,11 +549,11 @@ export default function FishermanDashboard() {
     fetch(`${API_URL}/api/sos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        boatId: userData.boatId, 
-        lat: position[0], 
-        lng: position[1], 
-        message: "Emergency signal received from fisherman boat." 
+      body: JSON.stringify({
+        boatId: userData.boatId,
+        lat: position[0],
+        lng: position[1],
+        message: "Emergency signal received from fisherman boat."
       })
     }).catch(err => console.error("SOS API failure", err));
 
@@ -522,19 +576,19 @@ export default function FishermanDashboard() {
         familyPhone: editedPhone
       })
     })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        const updatedUser = { ...userData, familyPhone: editedPhone };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        toast.success("Profile updated successfully!");
-        setIsEditing(false);
-      } else {
-        toast.error("Failed to update profile");
-      }
-    })
-    .catch(err => toast.error("Update failed: " + err.message))
-    .finally(() => setIsUpdating(false));
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const updatedUser = { ...userData, familyPhone: editedPhone };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          toast.success("Profile updated successfully!");
+          setIsEditing(false);
+        } else {
+          toast.error("Failed to update profile");
+        }
+      })
+      .catch(err => toast.error("Update failed: " + err.message))
+      .finally(() => setIsUpdating(false));
   };
 
 
@@ -547,7 +601,7 @@ export default function FishermanDashboard() {
       if (direction === 'DOWN') newPos[0] -= step;
       if (direction === 'LEFT') newPos[1] -= step;
       if (direction === 'RIGHT') newPos[1] += step;
-      
+
       setSpeed(8 + Math.random() * 2); // Simulated manual speed
       localStorage.setItem('lastKnownPosition', JSON.stringify(newPos));
       return newPos;
@@ -562,7 +616,7 @@ export default function FishermanDashboard() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-ocean-dark text-white relative overflow-hidden">
-      
+
       {/* Top Navigation */}
       <header className="min-h-[4rem] lg:h-16 bg-ocean-mid border-b border-ocean-light flex flex-wrap lg:flex-nowrap items-center justify-between px-4 lg:px-6 shadow-md z-30 glass-panel gap-2 py-2 lg:py-0">
         <button onClick={() => navigate('/home')} className="flex items-center gap-2 lg:gap-3 hover:opacity-80 transition-opacity cursor-pointer">
@@ -586,7 +640,7 @@ export default function FishermanDashboard() {
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded bg-ocean-dark border border-ocean-light relative">
             <Navigation className="w-4 h-4 lg:w-5 lg:h-5 text-gray-300" />
             <span>{speed.toFixed(1)} km/h</span>
-            <button 
+            <button
               onClick={testVoice}
               className="ml-2 p-1 bg-blue-500/20 hover:bg-blue-500/40 rounded border border-blue-500/30 text-blue-400 transition-all flex items-center justify-center"
               title="Sync Voice"
@@ -600,7 +654,7 @@ export default function FishermanDashboard() {
             <span className="text-xs text-blue-400 font-black font-mono">{userData.boatId || 'BOAT_DEMO'}</span>
           </div>
 
-          <button 
+          <button
             onClick={() => {
               setEditedPhone(userData.familyPhone || "");
               setIsEditing(false);
@@ -612,7 +666,7 @@ export default function FishermanDashboard() {
             <span className="uppercase font-black hidden lg:inline">{t.profile}</span>
           </button>
 
-          <button 
+          <button
             onClick={() => setShowMessages(true)}
             className="flex items-center gap-1.5 lg:gap-2 px-2 lg:px-3 py-0.5 lg:py-1 rounded bg-ocean-dark border border-ocean-light hover:bg-gray-700 transition-colors relative"
           >
@@ -625,7 +679,7 @@ export default function FishermanDashboard() {
             <span className="uppercase font-black hidden lg:inline">{t.inbox}</span>
           </button>
 
-          <button 
+          <button
             onClick={() => { localStorage.removeItem('user'); navigate('/'); }}
             className="text-gray-400 hover:text-white font-bold transition-colors px-2 py-1 text-[10px] lg:text-xs tracking-tighter"
           >
@@ -637,7 +691,7 @@ export default function FishermanDashboard() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
-        
+
         {/* Full Screen Map */}
         <div className="w-full lg:w-3/4 flex-1 h-full relative z-0">
           {/* Guidance Overlay */}
@@ -654,57 +708,57 @@ export default function FishermanDashboard() {
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
             />
-            
+
             {/* Safe Zone Region */}
-            <Polygon 
-              positions={SAFE_ZONE_POLYGON} 
+            <Polygon
+              positions={SAFE_ZONE_POLYGON}
               pathOptions={{
-                color: '#10b981', 
+                color: '#10b981',
                 fillColor: '#10b981',
                 fillOpacity: 0.1,
                 weight: 3,
                 dashArray: "10, 10"
-              }} 
+              }}
             />
-            
+
             {/* Real World Boundaries via Show Risk Zones Toggle */}
             {showRiskZones && (
               <>
                 {/* Coral Reef Zone */}
-                <Polygon 
-                  positions={CORAL_REEF_ZONE} 
-                  pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.2, weight: 2 }} 
+                <Polygon
+                  positions={CORAL_REEF_ZONE}
+                  pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.2, weight: 2 }}
                 />
 
                 {/* Sri Lanka Waters */}
-                <Polygon 
-                  positions={SRI_LANKA_WATERS} 
-                  pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, weight: 0 }} 
+                <Polygon
+                  positions={SRI_LANKA_WATERS}
+                  pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, weight: 0 }}
                 />
 
                 {/* Actual IMBL Border Line */}
-                <Polyline 
-                  positions={IMBL_LINE} 
-                  pathOptions={{ color: '#ef4444', weight: 4, dashArray: "15, 10" }} 
+                <Polyline
+                  positions={IMBL_LINE}
+                  pathOptions={{ color: '#ef4444', weight: 4, dashArray: "15, 10" }}
                 />
               </>
             )}
             {/* Boat Marker */}
             <Marker position={position} icon={boatIcon} />
-            
+
             <MapUpdater center={position} />
           </MapContainer>
 
           {/* Manual Control Overlay (D-Pad) */}
           {manualMode && (
             <div className="absolute bottom-8 left-8 z-[500] flex flex-col items-center justify-center p-4 glass-panel rounded-full shadow-2xl">
-              <button 
+              <button
                 className="w-12 h-12 bg-ocean-light hover:bg-gray-500 rounded-lg flex items-center justify-center mb-1 transition-all active:scale-95 text-white shadow"
                 onClick={() => moveManual('UP')} title={t.north}>
                 ▲
               </button>
               <div className="flex gap-1 mb-1">
-                <button 
+                <button
                   className="w-12 h-12 bg-ocean-light hover:bg-gray-500 rounded-lg flex items-center justify-center transition-all active:scale-95 text-white shadow"
                   onClick={() => moveManual('LEFT')} title={t.west}>
                   ◀
@@ -712,20 +766,20 @@ export default function FishermanDashboard() {
                 <div className="w-12 h-12 flex items-center justify-center font-bold text-gray-400 text-xs">
                   {t.drive.toUpperCase()}
                 </div>
-                <button 
+                <button
                   className="w-12 h-12 bg-ocean-light hover:bg-gray-500 rounded-lg flex items-center justify-center transition-all active:scale-95 text-white shadow"
                   onClick={() => moveManual('RIGHT')} title={t.east}>
                   ▶
                 </button>
               </div>
-              <button 
+              <button
                 className="w-12 h-12 bg-ocean-light hover:bg-gray-500 rounded-lg flex items-center justify-center transition-all active:scale-95 text-white shadow"
                 onClick={() => moveManual('DOWN')} title={t.south}>
                 ▼
               </button>
             </div>
           )}
-          
+
           {/* Overlay Stats */}
           <div className="absolute top-4 left-4 z-[400] glass-panel p-2 lg:p-4 rounded-lg shadow-lg">
             <h3 className="text-gray-400 text-[8px] lg:text-xs mb-1 uppercase tracking-wider">{t.distance_to_border}</h3>
@@ -733,7 +787,7 @@ export default function FishermanDashboard() {
               {distanceToBorder ? `${(distanceToBorder / 1000).toFixed(2)} km` : '--'}
             </p>
             <p className="text-[8px] lg:text-xs text-gray-400 mt-1 lg:mt-2">
-              {t.latitude}: {position[0].toFixed(4)} <br/>
+              {t.latitude}: {position[0].toFixed(4)} <br />
               {t.longitude}: {position[1].toFixed(4)}
             </p>
           </div>
@@ -779,7 +833,7 @@ export default function FishermanDashboard() {
       {/* Bottom Control Panel */}
       <div className="min-h-[5rem] lg:h-20 bg-ocean-mid border-t border-ocean-light flex flex-col lg:flex-row items-center justify-between px-4 lg:px-8 py-2 lg:py-0 z-20 glass-panel gap-3">
         <div className="flex gap-2 lg:gap-4 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 custom-scrollbar justify-center">
-          <button 
+          <button
             onClick={() => {
               setIsTracking(!isTracking);
               if (!isTracking) setManualMode(false);
@@ -790,7 +844,7 @@ export default function FishermanDashboard() {
             <span className="hidden sm:inline">{isTracking ? t.stop_auto_tracking : t.start_auto_tracking}</span>
             <span className="sm:hidden">{isTracking ? "STOP" : "START"}</span>
           </button>
-          <button 
+          <button
             onClick={() => {
               setManualMode(!manualMode);
               if (!manualMode) setIsTracking(false);
@@ -801,7 +855,7 @@ export default function FishermanDashboard() {
             <span>{manualMode ? (window.innerWidth < 640 ? "MANUAL" : t.manual_control_active) : (window.innerWidth < 640 ? "DRIVE" : t.enable_manual_control)}</span>
           </button>
 
-          <button 
+          <button
             onClick={() => setShowRiskZones(!showRiskZones)}
             className={`whitespace-nowrap px-3 lg:px-6 py-2 rounded-lg text-xs lg:text-base font-semibold border border-ocean-light flex items-center gap-2 transition-all bg-ocean-light hover:bg-gray-600`}
           >
@@ -810,7 +864,7 @@ export default function FishermanDashboard() {
             <span className="sm:hidden">ZONES</span>
           </button>
 
-          <button 
+          <button
             onClick={() => setShowCoastGuardPopup(true)}
             className="whitespace-nowrap px-3 lg:px-6 py-2 rounded-lg text-xs lg:text-base font-bold bg-red-600 hover:bg-red-700 text-white border-2 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.5)] flex items-center gap-2 transition-all animate-pulse"
           >
@@ -820,7 +874,7 @@ export default function FishermanDashboard() {
         </div>
 
         <div className="flex gap-2 lg:gap-4 w-full lg:w-auto justify-center">
-          <button 
+          <button
             onClick={() => navigate('/home')}
             className="px-3 lg:px-6 py-2 rounded-lg text-xs lg:text-base font-semibold bg-gray-500/20 text-gray-300 hover:bg-gray-500/30 transition-all border border-gray-500/50 flex items-center gap-2"
           >
@@ -828,7 +882,7 @@ export default function FishermanDashboard() {
             <span className="hidden sm:inline">{t.back_to_dashboard}</span>
             <span className="sm:hidden">HOME</span>
           </button>
-          <button 
+          <button
             onClick={triggerSOS}
             className="flex-1 lg:flex-none px-6 lg:px-8 py-2 rounded-lg text-xs lg:text-base font-bold bg-danger hover:bg-red-600 text-white shadow-lg shadow-red-500/50 flex items-center justify-center gap-2 transition-transform active:scale-95"
           >
@@ -850,22 +904,22 @@ export default function FishermanDashboard() {
               <h2 className="text-2xl font-black mb-2 uppercase tracking-tighter">Emergency Call</h2>
               <p className="text-gray-400 mb-8 leading-relaxed">
                 Do you want to call <span className="text-white font-bold">Coast Guard Emergency</span>?
-                <br/>
+                <br />
                 <span className="text-base font-mono mt-4 block text-red-400 bg-red-500/10 py-2 rounded-lg border border-red-500/20">7904 146 844</span>
                 <p className="text-[10px] mt-4 opacity-50 hidden lg:block italic">
                   (Desktop user: Please dial this number manually from your phone)
                 </p>
               </p>
-              
+
               <div className="flex flex-col gap-3">
-                <button 
+                <button
                   onClick={callCoastGuard}
                   className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-lg shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3"
                 >
                   <PhoneCall className="w-6 h-6" />
                   CALL NOW
                 </button>
-                <button 
+                <button
                   onClick={() => setShowCoastGuardPopup(false)}
                   className="w-full py-3 bg-ocean-light hover:bg-gray-600 text-gray-300 rounded-xl font-bold transition-all text-sm"
                 >
@@ -912,15 +966,15 @@ export default function FishermanDashboard() {
             </div>
             <div className="p-6 bg-ocean-dark/50 border-t border-ocean-light space-y-4">
               <div className="flex gap-2">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder={t.message_to_family}
                   className="flex-1 bg-ocean-dark border border-ocean-light rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
-                <button 
+                <button
                   onClick={handleSendMessage}
                   className="p-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors"
                 >
@@ -931,8 +985,8 @@ export default function FishermanDashboard() {
                 {t.dashboard}
               </button>
             </div>
+          </div>
         </div>
-      </div>
       )}
       {/* Profile Modal */}
       {showProfile && (
@@ -947,7 +1001,7 @@ export default function FishermanDashboard() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="p-8 space-y-6">
               <div className="flex flex-col items-center">
                 <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mb-4 border-2 border-blue-500/20 shadow-inner">
@@ -964,7 +1018,7 @@ export default function FishermanDashboard() {
                   <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">{t.boat_id}</p>
                   <p className="text-lg font-mono font-bold text-blue-300">{userData.boatId || 'BOAT_DEMO'}</p>
                 </div>
-                
+
                 <div className="bg-ocean-dark/50 p-4 rounded-xl border border-ocean-light/50">
                   <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">{t.email_address}</p>
                   <p className="text-sm font-medium text-gray-200">{userData.email || 'N/A'}</p>
@@ -973,7 +1027,7 @@ export default function FishermanDashboard() {
                 <div className="bg-ocean-dark/50 p-4 rounded-xl border border-ocean-light/50 relative group">
                   <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">{t.emergency_contact}</p>
                   {isEditing ? (
-                    <input 
+                    <input
                       type="text"
                       value={editedPhone}
                       onChange={(e) => setEditedPhone(e.target.value)}
@@ -982,7 +1036,7 @@ export default function FishermanDashboard() {
                   ) : (
                     <div className="flex justify-between items-center">
                       <p className="text-lg font-mono font-bold text-red-400">{userData.familyPhone || 'N/A'}</p>
-                      <button 
+                      <button
                         onClick={() => setIsEditing(true)}
                         className="text-[10px] text-blue-400 font-bold hover:underline"
                       >
@@ -997,13 +1051,13 @@ export default function FishermanDashboard() {
             <div className="p-6 bg-ocean-dark/50 border-t border-ocean-light flex gap-3">
               {isEditing ? (
                 <>
-                  <button 
-                    onClick={() => setIsEditing(false)} 
+                  <button
+                    onClick={() => setIsEditing(false)}
                     className="flex-1 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-black transition-all uppercase tracking-widest text-xs"
                   >
                     {t.cancel}
                   </button>
-                  <button 
+                  <button
                     onClick={handleUpdateProfile}
                     disabled={isUpdating}
                     className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-black transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs disabled:opacity-50"
@@ -1012,8 +1066,8 @@ export default function FishermanDashboard() {
                   </button>
                 </>
               ) : (
-                <button 
-                  onClick={() => setShowProfile(false)} 
+                <button
+                  onClick={() => setShowProfile(false)}
                   className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black transition-all shadow-lg active:scale-95 uppercase tracking-widest"
                 >
                   {t.back_to_dashboard}

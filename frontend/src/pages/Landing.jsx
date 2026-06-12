@@ -53,7 +53,7 @@ export default function Landing() {
       } else {
         toast.error(data.message || 'Authentication failed');
       }
-    } catch (err) {
+    } catch {
       toast.error('Server offline. Using demo login.');
       // Fallback Demo Login
       const fallbackRole = (formData.email === 'admin@seashield.com' && formData.password === 'admin') ? 'admin' : formData.role;

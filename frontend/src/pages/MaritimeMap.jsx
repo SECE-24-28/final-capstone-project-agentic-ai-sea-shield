@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Polygon, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Polyline } from 'react-leaflet';
 import { Shield, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { translations } from '../translations';

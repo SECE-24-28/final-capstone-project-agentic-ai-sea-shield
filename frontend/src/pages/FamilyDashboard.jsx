@@ -78,6 +78,28 @@ export default function FamilyDashboard() {
   });
   const [alerts, setAlerts] = useState([]);
   const [receivedMessages, setReceivedMessages] = useState([]);
+  const [tripHistory, setTripHistory] = useState([]);
+  const [message, setMessage] = useState("");
+  const [inactivity, setInactivity] = useState(false);
+
+  const handleNewAlert = (msg, type) => {
+    const isDanger = type === 'danger';
+    setAlerts(prev => [{
+      id: Date.now(),
+      time: new Date().toLocaleTimeString(),
+      msg,
+      type
+    }, ...prev].slice(0, 5));
+
+    toast(msg, {
+      icon: isDanger ? 'SOS' : '!',
+      style: {
+        background: isDanger ? '#ef4444' : '#f59e0b',
+        color: '#fff',
+        fontWeight: 'bold'
+      }
+    });
+  };
 
   useEffect(() => {
     const boatId = userData.boatId || 'BOAT_DEMO';
@@ -157,10 +179,6 @@ export default function FamilyDashboard() {
     };
   }, []);
 
-  const [tripHistory, setTripHistory] = useState([]);
-  const [message, setMessage] = useState("");
-  const [inactivity, setInactivity] = useState(false);
-
   useEffect(() => {
     if (!boatData.lastUpdate) return;
     const checkInactivity = () => {
@@ -194,7 +212,8 @@ export default function FamilyDashboard() {
     });
   };
 
-  const handleNewAlert = (msg, type) => {
+  // eslint-disable-next-line no-unused-vars
+  function unusedHandleNewAlert(msg, type) {
     const isDanger = type === 'danger';
     setAlerts(prev => [{
       id: Date.now(),
@@ -211,7 +230,7 @@ export default function FamilyDashboard() {
         fontWeight: 'bold'
       }
     });
-  };
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
