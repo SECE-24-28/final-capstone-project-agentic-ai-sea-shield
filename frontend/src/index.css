@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ocean-dark: #0f172a;
+  --ocean-mid: #1e293b;
+  --ocean-light: #334155;
+  
+  --safe-green: #10b981;
+  --warn-yellow: #f59e0b;
+  --danger-red: #ef4444;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: var(--ocean-dark);
+  color: white;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Map Overrides */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #020617; /* Very dark blue for water */
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+}
+
+.leaflet-control-zoom-in, 
+.leaflet-control-zoom-out {
+  background-color: var(--ocean-mid) !important;
+  color: white !important;
+  border: 1px solid var(--ocean-light) !important;
+}
+
+.glass-panel {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.marker-boat {
+  filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.8));
+  transition: all 0.5s ease;
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.text-safe { color: #10b981; }
+.bg-safe { background-color: #10b981; }
+.border-safe { border-color: #10b981; }
+
+.text-warn { color: #f59e0b; }
+.bg-warn { background-color: #f59e0b; }
+.border-warn { border-color: #f59e0b; }
+
+.text-danger { color: #ef4444; }
+.bg-danger { background-color: #ef4444; }
+.border-danger { border-color: #ef4444; }
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--ocean-dark);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--ocean-light);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.anim-vibrate {
+  animation: vibrate 0.3s linear infinite;
+}
+
+@keyframes vibrate {
+  0% { transform: translate(0); }
+  25% { transform: translate(-2px, 2px); }
+  50% { transform: translate(2px, -2px); }
+  75% { transform: translate(-2px, -2px); }
+  100% { transform: translate(2px, 2px); }
+}
