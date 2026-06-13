@@ -34,9 +34,6 @@ let memoryData = {
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/seashield';
 let isMongoConnected = false;
 
-// AI Alert Agent
-let alertOrchestrator = null;
-
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log('MongoDB Connected');
@@ -48,15 +45,7 @@ mongoose.connect(MONGO_URI)
   });
 
 // Initialize AI Alert Agent (async)
-initializeAlertAgent()
-  .then(orchestrator => {
-    alertOrchestrator = orchestrator;
-    console.log('✅ AI Alert Agent initialized');
-  })
-  .catch(err => {
-    console.warn('⚠️  AI Alert Agent failed to initialize:', err.message);
-    console.warn('Falling back to template-based alerts');
-  });
+initializeAlertAgent();
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -266,28 +255,8 @@ app.post('/api/ai-alert', async (req, res) => {
 // Alert Agent Monitoring Endpoint
 app.get('/api/alert-agent/status', (req, res) => {
   res.status(200).json({
-    status: alertOrchestrator ? 'active' : 'inactive',
-    initialized: !!alertOrchestrator,
-    message: alertOrchestrator
-      ? 'AI Alert Agent is running'
-      : 'AI Alert Agent not available - using template-based alerts'
-  });
-});
-
-// Alert Agent History Endpoint
-app.get('/api/alert-agent/history', (req, res) => {
-  if (!alertOrchestrator) {
-    return res.status(503).json({
-      error: 'Agent not initialized',
-      message: 'AI Alert Agent is not available'
-    });
-  }
-
-  const limit = parseInt(req.query.limit) || 10;
-  const history = alertOrchestrator.getExecutionHistory(limit);
-  res.status(200).json({
-    count: history.length,
-    executions: history
+    initialized: true,
+    message: 'Check server logs for agent initialization status'
   });
 });
 

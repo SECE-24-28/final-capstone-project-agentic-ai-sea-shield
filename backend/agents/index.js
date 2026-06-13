@@ -26,25 +26,18 @@ async function initializeAlertAgent() {
     try {
         console.log("🤖 Initializing Maritime Alert AI Agent...");
 
-        // Create LLM instance
         const llm = await LLMProvider.create({
-            provider: process.env.LLM_PROVIDER || "ollama",
-            modelName: process.env.LLM_MODEL || "llama2:latest"
+            provider: process.env.LLM_PROVIDER || "groq",
+            modelName: process.env.LLM_MODEL || "llama3-8b-8192"
         });
 
-        // Create alert agent
         const agent = new MaritimeAlertAgent(llm);
-
-        // Create orchestrator
-        orchestrator = new AlertOrchestrator(agent, llm);
+        orchestrator = new AlertOrchestrator(agent, llm); // sets module-level var
 
         console.log("✅ Maritime Alert Agent initialized successfully");
         return orchestrator;
     } catch (error) {
-        console.warn(
-            "⚠️  Alert agent initialization failed:",
-            error.message
-        );
+        console.warn("⚠️  Alert agent initialization failed:", error.message);
         console.warn("Falling back to template-based alerts");
         return null;
     }

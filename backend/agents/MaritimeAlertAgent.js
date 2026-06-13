@@ -26,18 +26,11 @@ Alert Guidelines:
 
 Alert Types:
 1. BORDER_WARNING: Boat approaching maritime boundary
-2. HIGH_RISK_ZONE: Entered coral reef or restricted area  
+2. HIGH_RISK_ZONE: Entered coral reef or restricted area
 3. SOS: Emergency/distress situation
 4. INFO: Non-critical maritime guidance
 
-Respond with valid JSON only:
-{
-  "message": "string (max 100 chars)",
-  "voiceAlert": "string for text-to-speech",
-  "severity": "info|warning|critical",
-  "recommendedAction": "string"
-}
-`
+Respond with valid JSON only, using these exact keys: message (max 100 chars string), voiceAlert (string for text-to-speech), severity (one of: info, warning, critical), recommendedAction (string).`
             ],
             ["human", "{context}"]
         ]);
@@ -75,7 +68,8 @@ Include severity level and recommended action.
 
         try {
             const result = await this.chain.invoke({ context });
-            const parsed = JSON.parse(result);
+            const cleaned = result.replace(/```json\n?|```\n?/g, '').trim();
+            const parsed = JSON.parse(cleaned);
             return {
                 success: true,
                 displayText: parsed.message,
